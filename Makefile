@@ -4,7 +4,7 @@ EXE_FILES=$(CC_FILES:.cu=)
 all:$(EXE_FILES)
 
 %:%.cu
-	nvcc -o $@ $< -O2 -arch=sm_89 -std=c++17 -I3rd/cutlass/include --expt-relaxed-constexpr -cudart shared --cudadevrt none #-lcublasLt -lcublas
+	nvcc -o $@ $< -O2 -arch=sm_89 -std=c++17 -I3rd/cutlass/include --expt-relaxed-constexpr -cudart shared --cudadevrt none 
 
 clean:
 	rm -rf $(EXE_FILES)

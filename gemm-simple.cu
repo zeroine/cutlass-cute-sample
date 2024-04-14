@@ -42,20 +42,31 @@ __global__ void gemm_simple(T *Cptr, const T *Aptr, const T *Bptr, int m, int n,
   clear(tCrC);
 
 #ifdef PRINT_INFO
+/*
+    gA : (_128,_32,32)
+    tAgA : ((_2,_2,_2),_4,_2,32)
+    tArA : ((_2,_2,_2),_4,_2)
+    gB : (_128,_32,32)
+    tBgB : ((_2,_2),_8,_2,32)
+    tBrB : ((_2,_2),_8,_2)
+    gC : (_128,_128)
+    tCgC : ((_2,_2),_4,_8)
+    tCrC : ((_2,_2),_4,_8)
+*/
   if (threadIdx.x == 0 && blockIdx.x == 0 && blockIdx.y == 0)
   {
 
-    PRINT("gA", gA.shape())     // (_128,_32,32)
-    PRINT("tAgA", tAgA.shape()) // ((_2,_2,_2),_4,_2,32)
-    PRINT("tArA", tArA.shape()) // ((_2,_2,_2),_4,_2)
+    PRINT("gA", gA.shape())     
+    PRINT("tAgA", tAgA.shape()) 
+    PRINT("tArA", tArA.shape()) 
 
-    PRINT("gB", gB.shape())     // (_128,_32,32)
-    PRINT("tBgB", tBgB.shape()) //((_2,_2),_8,_2,32)
-    PRINT("tBrB", tBrB.shape()) //((_2,_2),_8,_2)
+    PRINT("gB", gB.shape())     
+    PRINT("tBgB", tBgB.shape()) 
+    PRINT("tBrB", tBrB.shape()) 
 
-    PRINT("gC", gC.shape())     // (_128,_128)
-    PRINT("tCgC", tCgC.shape()) // ((_2,_2),_4,_8)
-    PRINT("tCrC", tCrC.shape()) // ((_2,_2),_4,_8)
+    PRINT("gC", gC.shape())     
+    PRINT("tCgC", tCgC.shape()) 
+    PRINT("tCrC", tCrC.shape()) 
   }
 #endif
 
@@ -89,8 +100,8 @@ int main()
   T *Aptr;
   T *Bptr;
 
-  int m = 8192;
-  int n = 1024;
+  int m = 1024*64;
+  int n = 128;
   int k = 1024;
 
   cudaMalloc(&Cptr, sizeof(T) * m * n);
