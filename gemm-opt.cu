@@ -66,7 +66,7 @@ namespace config
   };
 
   template <typename T_, int kTileM_ = 128, int kTileN_ = 128, int kTileK_ = 32,
-            int kStage_ = 3, int kSmemLayoutCBatch_ = 2>
+            int kStage_ = 3, int kSmemLayoutCBatch_ = 4>
   struct GemmConfig
   {
     using T = T_;
@@ -115,9 +115,9 @@ namespace config
     using S2RCopyAtomB = s2r_copy_atom;
 
     // register to global via shared memory
-    using MNK = typename MMA::TiledShape_MNK; // Shape<_16,_8,_16>
+    using MNK = typename MMA::TiledShape_MNK;
     using SmemLayoutAtomC = decltype(composition(
-        Swizzle<2, 3, 3>{}, make_layout(make_shape(get<0>(MNK{}), get<1>(MNK{})),
+        Swizzle<3, 3, 3>{}, make_layout(make_shape(get<0>(MNK{}), get<1>(MNK{})),
                                         make_stride(get<1>(MNK{}), Int<1>{}))));
     using SmemLayoutC = decltype(tile_to_shape(
         SmemLayoutAtomC{},
@@ -800,7 +800,7 @@ gemm_opt_final(void *Dptr, const void *Aptr, const void *Bptr, int m, int n,
   } // itile
 
   // use less shared memory as a scratchpad tile to use large wide instuction
-  // Dreg -> shm -> reg -> global
+  // Dreg -> shm -> global
   // (get<0>(MNK{}), get<1>(MNK{}), Int<kSmemLayoutCBatch>{})
   auto sC = make_tensor(sA(_, _, ismem_read).data(), SmemLayoutC{});
 
@@ -839,7 +839,7 @@ gemm_opt_final(void *Dptr, const void *Aptr, const void *Bptr, int m, int n,
   }
 #endif
 
-  int step = size<3>(tCsC_r2s); // pipe
+  int step = size<3>(tCsC_r2s);
 #pragma unroll
   for (int i = 0; i < size<1>(tCrC_r2sx); i += step)
   {
@@ -847,13 +847,8 @@ gemm_opt_final(void *Dptr, const void *Aptr, const void *Bptr, int m, int n,
 #pragma unroll
     for (int j = 0; j < step; ++j)
     {
-      // we add a temp tensor to cope with accumulator and output data type
-      // difference
-      auto t = make_tensor_like<T>(tCrC_r2sx(_, i + j));
       // (_2,(_2,_2))
-      cute::copy(tCrC_r2sx(_, i + j), t);
-      // (_2,(_2,_2))
-      cute::copy(r2s_tiled_copy_c, t, tCsC_r2s(_, 0, 0, j));
+      cute::copy(r2s_tiled_copy_c, tCrC_r2sx(_, i + j), tCsC_r2s(_, 0, 0, j));
     }
     __syncthreads();
 
@@ -867,6 +862,7 @@ gemm_opt_final(void *Dptr, const void *Aptr, const void *Bptr, int m, int n,
 
     __syncthreads();
   }
+
 }
 
 int main(int argc, char *argv[])
